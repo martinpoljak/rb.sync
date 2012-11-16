@@ -178,7 +178,7 @@ module RbSync
         def dispatch_hashing!
             Thread::new do
                 self.logger.debug($path) { "Starting hashset dispatcher." }
-                            
+                
                 data = true
                 position = 0
                 

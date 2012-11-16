@@ -139,19 +139,27 @@ class Worker
         
         # Generates hashes
         Thread::new do
-            begin      
-                self.file do |file|
-                    file.seek(0)
+            begin     
+                position = 0
+                data = true
+                
+                while data
+                    self.file do |file|
+                        file.seek(position)
 
-                    # creates local hash table
-                    while data = file.read(1024 * 1024)
-                        @local_hashes << Digest::SHA1.hexdigest(data)
+                        # creates local hash table
+                        data = file.read(1024 * 1024)
                     end
                     
-                    # indicates end of stream
-                    @local_hashes << :end
-                    
+                    if data
+                        @local_hashes << Digest::SHA1.hexdigest(data)
+                        position += 1024 * 1024
+                    end
                 end
+                
+                # indicates end of stream
+                @local_hashes << :end
+                
             rescue Exception => e
                 puts "Exception: " + e.message + "\n" + e.backtrace.join("\n")
             end
