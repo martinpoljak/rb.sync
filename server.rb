@@ -273,7 +273,7 @@ class Worker
                     local_end = true
                 end
 
-                if local != remote
+                if local.to_sym != :end and remote.to_sym != :end and local != remote
                     self.io :write do |io|
                         self.logger.debug { "Ordering block #{sequence}." }
                         
