@@ -207,6 +207,9 @@ module RbSync
                     end
                 end
                 
+                # indicates finish
+                @hash_queue << :end
+                
                 self.logger.info($path) { "Indexing for transfer finished." }
             end
         end
@@ -249,7 +252,13 @@ module RbSync
                     data = io.gets
                 end
                 
+                # if nil data arrived, it means termination
+                if data.nil?
+                    break
+                end
+                
                 message = Hashie::Mash::new(MultiJson::load(data))
+                p message
                 self.logger.debug($path) { "Message of type '#{message.type}' received." }
 
                 # calls processing method according to incoming message
@@ -265,10 +274,16 @@ module RbSync
         
         ##
         # Handles single order.
+        # @param Hashie::Mash ordering message
         #
         
-        def handle_order(message)        
-            self.logger.debug($path) { "Order received for block #{message.sequence}." }
+        def handle_order(message)
+            if not message.end
+                self.logger.debug($path) { "Order received for block #{message.sequence}." }
+            else
+                self.logger.debug($path) { "Ordering end indication received." }
+            end
+            
             @orders_queue << message
         end
 
@@ -282,6 +297,20 @@ module RbSync
                 
                 loop do
                     message = @orders_queue.pop
+                   
+                    # eventually terminates processing it's finished
+                    if message.end and @orders_queue.empty?
+                        self.logger.debug($path) { "All orders realised. Terminating." }
+                        
+                        self.io :write do |io|
+                            io.puts MultiJson::dump({
+                                :type => :end
+                            })
+                        end
+                        
+                        self.terminate!
+                        return
+                    end
                 
                     # loads block
                     data = nil
@@ -315,6 +344,22 @@ module RbSync
                 end
             end
             
+        end
+        
+        ##
+        # Terminates the client.
+        #
+        
+        def terminate!
+            self.file do |file|
+                file.close()
+            end
+            
+            self.io :read do
+                self.io :write do |io|
+                    io.close()
+                end
+            end
         end
 
     end

@@ -81,8 +81,12 @@ class Worker
                 self.logger.debug { "Data arrived." }
             end
 
+            # nil received, it's reason for termination
             if prefix.nil?
-                Kernel.sleep(0.1)
+                self.logger.info { "Connection closed? Termination." }
+                self.terminate!
+                
+            # block detected
             elsif prefix == "block"
                 meta = nil
                 self.io :read do |io|
@@ -91,6 +95,8 @@ class Worker
                 end
                 
                 self.handle_block(meta, @io)
+                
+            # in otherwise, it's message
             else
                 data = nil
                 self.io :read do |io|
@@ -100,6 +106,7 @@ class Worker
                 
                 result = self.handle_message(prefix + data)
                 return if result == :end
+                
             end
         end
     end
@@ -123,7 +130,7 @@ class Worker
         
         #data = Zlib::Inflate::inflate(data)
         self.logger.debug { "Decompressing block #{sequence}." }
-        data = XZ::decompress(data)
+        #data = XZ::decompress(data)
         
         self.file do |file|
             self.logger.debug { "Writing #{data.length} bytes of block #{sequence}." }
@@ -258,11 +265,11 @@ class Worker
                 remote = @remote_hashes.pop if not remote_end
                 local = @local_hashes.pop if not local_end
                 
-                if remote == :end 
+                if remote.to_sym == :end 
                     remote_end = true
                 end
                 
-                if local == :end 
+                if local.to_sym == :end 
                     local_end = true
                 end
 
@@ -286,6 +293,7 @@ class Worker
                 local = nil
                 
                 # stops processing if everything was ordered
+                
                 if remote_end and local_end
                     self.io :write do |io|
                         self.logger.debug { "Announcing, everything has been ordered." }

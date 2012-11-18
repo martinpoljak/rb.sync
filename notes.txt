@@ -18,8 +18,7 @@ a jinak
 - podpora vnitrniho bufferovani (StringIO)
 - hashovani i komprese by mela probihat asynchronne v threadech podle poctu CPU
 - kazdy datovy prenos bude mit dvoubajtovy prefix: ID typu zpravy a ID typu komprese
-- client momentalne nereaguje na oznameni serveru ze odeslal vsechny hashe
-- zaroven handle_order na klientovi zablokuje zpracovani zprav; musi byt v threadu a fronte
+- nejake problemy s poslednim blokem; server o nej zada vzdy
 
 velikost bloku i kompresi si klient se serverem vyjedna
 
