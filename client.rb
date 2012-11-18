@@ -352,11 +352,13 @@ module RbSync
         
         def terminate!
             self.file do |file|
+                self.logger.debug($path) { "Closing the file." }
                 file.close()
             end
             
             self.io :read do
                 self.io :write do |io|
+                    self.logger.debug($path) { "Closing the remote IO." }
                     io.close()
                 end
             end
@@ -370,14 +372,3 @@ $blocksize = 1024 * 1024
 $path = 'test.dat'
 
 RbSync::Client::new.dispatch!
-
-=begin
-
-        # Terminates
-        io.puts MultiJson::dump({
-            :type => :end
-        })
-
-        io.close()
-        file.close()
-=end
