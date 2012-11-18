@@ -54,9 +54,17 @@ module RbSync
         
         ##
         # Outcoming hashes queue.
+        # @var Queue
         #
         
         @hash_queue
+        
+        ##
+        # Placed orders queue.
+        # @var Queue
+        #
+        
+        @orders_queue
         
         ##
         # Constructor.
@@ -65,6 +73,7 @@ module RbSync
         def initialize
             @file_bytes = 0
             @hash_queue = Queue::new
+            @orders_queue = Queue::new
         end
         
         ##
@@ -143,6 +152,9 @@ module RbSync
             # dispatches hash set to the server
             self.dispatch_hashing!
             self.dispatch_hashset!
+            
+            # dispatches orders
+            self.dispatch_orders!
             
             # dispatches messages
             self.handle_messages!
@@ -255,36 +267,52 @@ module RbSync
         # Handles single order.
         #
         
-        def handle_order(message)
-        
+        def handle_order(message)        
             self.logger.debug($path) { "Order received for block #{message.sequence}." }
-           
-            # loads block
-            data = nil
-            position = message.sequence * $blocksize
-            
-            self.file do |file|
-                self.logger.debug($path) { "Reading block number #{message.sequence} from #{position}." }
-                file.seek(position)
-                data = file.read($blocksize)
-            end
-            
-            # if something has been loaded, sends it
-            if not data.nil?
-                #compressed = Zlib::Deflate::deflate(data, Zlib::BEST_COMPRESSION)
+            @orders_queue << message
+        end
+
+        ##
+        # Dispatches orders realising.
+        #
+        
+        def dispatch_orders!
+            Thread::new do
+                self.logger.debug($path) { "Starting orders dispatcher." }
                 
-                self.logger.debug($path) { "Compressing block number #{message.sequence}." }
-                compressed = XZ::compress(data)
-                self.logger.debug($path) { "Block compressed to size #{compressed.length} (#{((compressed.length / data.length.to_f) * 100).to_i}%)." }
+                loop do
+                    message = @orders_queue.pop
                 
-                self.io :write do |io|
-                    self.logger.debug($path) { "Sending block number #{message.sequence}." }
-                    io.write "block" + [message.sequence, compressed.length].pack("QQ")
-                    io.write compressed
+                    # loads block
+                    data = nil
+                    position = message.sequence * $blocksize
+                    
+                    self.file do |file|
+                        self.logger.debug($path) { "Reading block number #{message.sequence} from #{position}." }
+                        file.seek(position)
+                        data = file.read($blocksize)
+                    end
+                    
+                    # if something has been loaded, sends it
+                    if not data.nil?
+                        self.logger.debug($path) { "Compressing block number #{message.sequence}." }
+                        #compressed = XZ::compress(data)
+                        #compressed = Zlib::Deflate::deflate(data, Zlib::BEST_COMPRESSION)
+                        compressed = data
+                        self.logger.debug($path) { "Block compressed to size #{compressed.length} (#{((compressed.length / data.length.to_f) * 100).to_i}%)." }
+                        
+                        self.io :write do |io|
+                            self.logger.debug($path) { "Sending block number #{message.sequence}." }
+                            io.write "block" 
+                            io.write [message.sequence, compressed.length].pack("QQ")
+                            io.write compressed
+                        end
+                        
+                        @file_bytes += data.length
+                        puts "#{@file_bytes / ($blocksize)}M"
+                    end
+                    
                 end
-                
-                @file_bytes += data.length
-                puts "#{@file_bytes / ($blocksize)}M"
             end
             
         end
