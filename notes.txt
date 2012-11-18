@@ -1,0 +1,38 @@
+melo by byt nastavitelne
+- velikost bloku
+- typ comprese
+- zapnuti/vypnuti komprese 
+- soubory odkud
+- soubory do jake slozky
+- odesilani by melo probihat synchronne s hashovanim
+- moznost nastavit kolik bloku jen prenest
+- moznost nastavit offset prenosu souboru (v blocich)
+- po transferu by se mel overit soucet
+- predpakovavani a rozbalovani muze volitelne cachovat i na disk? (overit kvuli seekum)
+- uroven komprese by mela byt nastavitelna
+- buffer by mel mit nastavitelnou velkost
+- melo by byt zapnutelne vypisovani mnozstvi dat v lidskych jednotkach (-h)
+- mela by existovat moznost vybrat hashovaci algoritmus
+
+a jinak
+- podpora vnitrniho bufferovani (StringIO)
+- hashovani i komprese by mela probihat asynchronne v threadech podle poctu CPU
+- kazdy datovy prenos bude mit dvoubajtovy prefix: ID typu zpravy a ID typu komprese
+- client momentalne nereaguje na oznameni serveru ze odeslal vsechny hashe
+- zaroven handle_order na klientovi zablokuje zpracovani zprav; musi byt v threadu a fronte
+
+velikost bloku i kompresi si klient se serverem vyjedna
+
+###
+
+require 'curses'
+ 
+Curses.init_screen
+begin
+  Curses.setpos(6, 3)  # column 6, row 3
+  Curses.addstr("Hello")
+ 
+  Curses.getch  # Wait until user presses some key.
+ensure
+  Curses.close_screen
+end
