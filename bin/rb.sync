@@ -1,0 +1,12 @@
+#!/usr/bin/env ruby
+# encoding: utf-8
+require "trollop"
+
+$:.push("../lib")
+require "rb.sync/client"
+ 
+$blocksize = 1024 * 1024
+#$path = 'archive--rclick--20121106.tar'
+$path = 'test.dat'
+
+RbSync::Client::new.dispatch!

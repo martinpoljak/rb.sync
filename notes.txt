@@ -17,8 +17,8 @@ melo by byt nastavitelne
 a jinak
 - podpora vnitrniho bufferovani (StringIO)
 - hashovani i komprese by mela probihat asynchronne v threadech podle poctu CPU
-- kazdy datovy prenos bude mit dvoubajtovy prefix: ID typu zpravy a ID typu komprese
-- nejake problemy s poslednim blokem; server o nej zada vzdy
+- kazdy datovy prenos bude mit dvoubajtovy prefix: ID protokolu a ID typu komprese
+- korektni logovani v info rezimu
 
 velikost bloku i kompresi si klient se serverem vyjedna
 

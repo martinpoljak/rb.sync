@@ -6,6 +6,7 @@ require "hashie/mash"
 require "xz"
 require "thread"
 require "logger"
+require "trollop"
 
 module RbSync
     class Client
@@ -366,9 +367,3 @@ module RbSync
 
     end
 end
-
-$blocksize = 1024 * 1024
-#$path = 'archive--rclick--20121106.tar'
-$path = 'test.dat'
-
-RbSync::Client::new.dispatch!
