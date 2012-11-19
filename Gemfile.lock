@@ -1,15 +1,24 @@
 GEM
+  remote: https://rubygems.org/
   specs:
+    ffi (1.1.5)
     hash-utils (2.0.2)
       ruby-version (>= 0.4.0)
     hashie (1.2.0)
+    io-like (0.3.0)
     multi_json (1.3.7)
     ruby-version (0.4.2)
+    ruby-xz (0.1.1)
+      ffi
+      io-like
+    trollop (2.0)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
-  hash-utils
+  hash-utils (>= 2.0)
   hashie
   multi_json
+  ruby-xz
+  trollop (>= 2.0)
