@@ -4,9 +4,21 @@ require "trollop"
 
 $:.push("../lib")
 require "rb.sync/client"
+
+# Options parsing
+options = Trollop::options do
+    version "rb.sync 1.0 (c) 2012 Martin Kozák (martinkozak@martinkozak.net)"
+    banner <<-EOS
+Usage:
+    rb.sync [options] <source>+ <target>\n 
+    EOS
+    opt :blocksize, "Size of the base hashing block [bytes or K, M, G]", { :type => :string, :default => "1M" }
+    opt :compression, "Transfer compression type [xz, gzip, bzip]", { :type => :string, :default => "xz" }
+    opt :"compression-level", "Transfer compression level [0 to 9]", { :type => :integer, :default => 6, :short => :l }
+end
  
 $blocksize = 1024 * 1024
 #$path = 'archive--rclick--20121106.tar'
 $path = 'test.dat'
 
-RbSync::Client::new.dispatch!
+RbSync::Client::new(options, ARGV).dispatch!

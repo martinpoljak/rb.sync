@@ -13,65 +13,83 @@ module RbSync
         
         ##
         # Remote IO, so target of the transfer.
-        # @var IO
+        # @var [IO]
         #
         
         @io
         
         ##
         # Remote IO lock.
-        # @var Mutex
+        # @var [Mutex]
         #
         
         @io_locks
         
         ##
         # Input for the transfer.
-        # @var IO
+        # @var [IO]
         #
         
         @file
         
         ##
         # File IO lock.
-        # @var Mutex
+        # @var [Mutex]
         #
         
         @file_lock
         
         ##
         # Indicates transfered size of the file.
-        # @var Integer
+        # @var [Integer]
         #
         
         @file_bytes
         
         ##
         # Holds the logger instance.
-        # @var Logger
+        # @var [Logger]
         #
         
         @logger
         
         ##
         # Outcoming hashes queue.
-        # @var Queue
+        # @var [Queue]
         #
         
         @hash_queue
         
         ##
         # Placed orders queue.
-        # @var Queue
+        # @var [Queue]
         #
         
         @orders_queue
         
         ##
-        # Constructor.
+        # Transfer settings.
+        # @var [Hash]
         #
         
-        def initialize
+        @options
+        
+        ##
+        # Targets settings.
+        # @var [Array]
+        #
+        
+        @targets
+        
+        ##
+        # Constructor.
+        # @param [Hash] options  client settings
+        # @param [Array] targets  files for copy
+        #
+        
+        def initialize(options, targets)
+            @options = options
+            @targets = targets
             @file_bytes = 0
             @hash_queue = Queue::new
             @orders_queue = Queue::new
@@ -79,7 +97,7 @@ module RbSync
         
         ##
         # Returns the logger instance.
-        # @return logger
+        # @return [Logger]
         #
         
         def logger
@@ -101,7 +119,7 @@ module RbSync
         # Returns the server connection IO object.
         #
         # @param [:read, :write] method  method for correct locking
-        # @yield IO  the mutexed IO object
+        # @yield [IO]  the mutexed IO object
         #
         
         def io(method)
@@ -124,7 +142,7 @@ module RbSync
         
         ##
         # Returns the source file IO object.
-        # @yield IO  the mutexed IO object
+        # @yield [IO]  the mutexed IO object
         #
         
         def file
@@ -275,7 +293,7 @@ module RbSync
         
         ##
         # Handles single order.
-        # @param Hashie::Mash ordering message
+        # @param [Hashie::Mash] ordering message
         #
         
         def handle_order(message)
