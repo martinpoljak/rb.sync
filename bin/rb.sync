@@ -1,9 +1,14 @@
 #!/usr/bin/env ruby
 # encoding: utf-8
 require "trollop"
+require "hash-utils"
+require "datasizes"
+require "hashie/mash"
 
 $:.push("../lib")
 require "rb.sync/client"
+
+###
 
 # Options parsing
 options = Trollop::options do
@@ -13,12 +18,34 @@ Usage:
     rb.sync [options] <source>+ <target>\n 
     EOS
     opt :blocksize, "Size of the base hashing block [bytes or K, M, G]", { :type => :string, :default => "1M" }
-    opt :compression, "Transfer compression type [xz, gzip, bzip]", { :type => :string, :default => "xz" }
+    opt :compression, "Transfer compression type [xz, deflate, bzip]", { :type => :string, :default => "xz" }
     opt :"compression-level", "Transfer compression level [0 to 9]", { :type => :integer, :default => 6, :short => :l }
 end
+
+options[:blocksize] = Datasizes::to_bytes(options[:blocksize])
+options[:compression] = options[:compression].to_sym
+
+if not options[:compression].in? [:xz, :gzip, :bzip]
+    Trollop::die :compression, "unsupported compression algorithm"
+elsif options[:"compression-level"] > 10
+    options[:"compression-level"] == 9
+elsif options[:"compression-level"] < 0
+    Trollop::die :"compression-level", "invalid compression level"
+end
+
+options = Hashie::Mash::new(options)
+
+###
+
+# TODO: temporary!
+targets = Struct::new(:from, :to)::new
+targets.from = ARGV[-2]
+targets.to = ARGV[-1]
+
+###
  
 $blocksize = 1024 * 1024
 #$path = 'archive--rclick--20121106.tar'
 $path = 'test.dat'
 
-RbSync::Client::new(options, ARGV).dispatch!
+RbSync::Client::new(options, targets).dispatch!
