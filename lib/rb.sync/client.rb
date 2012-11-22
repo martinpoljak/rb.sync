@@ -1,4 +1,6 @@
+# (c) 2012 Martin Kozák (martinkozak@martinkozak.net)
 # encoding: utf-8
+
 require "socket"
 require "multi_json"
 require "digest/sha1"

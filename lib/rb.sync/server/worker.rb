@@ -1,4 +1,6 @@
-# encoqding: utf-8
+# (c) 2012 Martin Kozák (martinkozak@martinkozak.net)
+# encoding: utf-8
+
 require "thread"
 require "multi_json"
 require "hashie/mash"
