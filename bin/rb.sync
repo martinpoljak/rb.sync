@@ -1,5 +1,7 @@
 #!/usr/bin/env ruby
+# (c) 2012 Martin Kozák (martinkozak@martinkozak.net)
 # encoding: utf-8
+
 require "trollop"
 require "hash-utils"
 require "datasizes"
@@ -25,7 +27,9 @@ end
 options[:blocksize] = Datasizes::to_bytes(options[:blocksize])
 options[:compression] = options[:compression].to_sym
 
-if not options[:compression].in? [:xz, :gzip, :bzip]
+if ARGV.length < 2
+    Trollop::die "at least one <source> and one <target> arguments required"
+elsif not options[:compression].in? [:xz, :gzip, :bzip]
     Trollop::die :compression, "unsupported compression algorithm"
 elsif options[:"compression-level"] > 10
     options[:"compression-level"] == 9
@@ -44,8 +48,4 @@ targets.to = ARGV[-1]
 
 ###
  
-$blocksize = 1024 * 1024
-#$path = 'archive--rclick--20121106.tar'
-$path = 'test.dat'
-
 RbSync::Client::new(options, targets).dispatch!
