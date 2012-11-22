@@ -107,7 +107,7 @@ module RbSync
                 # formatter
                 default = Logger::Formatter::new
                 @logger.formatter = proc do |severity, datetime, progname, msg|
-                    progname = @targets.to
+                    progname = @targets.from
                     msg = "##{Thread.current.object_id} " + msg 
                     default.call(severity, datetime, progname, msg)
                 end
@@ -149,7 +149,7 @@ module RbSync
         def file
             if @file.nil?
                 @file_lock = Mutex::new
-                @file = File.open(@targets.to, 'r')
+                @file = File.open(@targets.from, 'r')
                 self.logger.debug { "Opening for reading." }
             end
             
@@ -193,8 +193,8 @@ module RbSync
                 
                 io.puts MultiJson::dump({
                     :type => :file,
-                    :path => @targets.to + ".new",
-                    :size => File.size(@targets.to)
+                    :path => @targets.to,
+                    :size => File.size(@targets.from)
                 })
             end
             
