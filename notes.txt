@@ -13,12 +13,14 @@ melo by byt nastavitelne
 - buffer by mel mit nastavitelnou velkost
 - melo by byt zapnutelne vypisovani mnozstvi dat v lidskych jednotkach (-h)
 - mela by existovat moznost vybrat hashovaci algoritmus
+- a zapnout silent mode
 
 a jinak
 - podpora vnitrniho bufferovani (StringIO)
 - hashovani i komprese by mela probihat asynchronne v threadech podle poctu CPU
 - kazdy datovy prenos bude mit dvoubajtovy prefix: ID protokolu a ID typu komprese
 - korektni logovani v info rezimu
+- nacitanou delku dat by asi mela resit nejaka knihovna
 
 velikost bloku i kompresi si klient se serverem vyjedna
 
