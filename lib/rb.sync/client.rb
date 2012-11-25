@@ -10,6 +10,8 @@ require "thread"
 require "logger"
 require "trollop"
 
+require "rb.sync/common/protocol"
+
 module RbSync
     class Client
         
@@ -190,9 +192,9 @@ module RbSync
         def negotiate!
         
             # sends initial file metadata
+# XXXXXX                
             self.io :write do |io|
                 self.logger.info { "Negotiating." }
-                
                 io.puts MultiJson::dump({
                     :type => :file,
                     :path => @targets.to,
@@ -247,6 +249,7 @@ module RbSync
                 loop do
                     hash = @hash_queue.pop
                     
+# XXXXXX                
                     self.io :write do |io|
                         self.logger.debug { "Sending hash of block #{hash}." }
                         io.puts MultiJson::dump({
@@ -320,10 +323,10 @@ module RbSync
                 loop do
                     message = @orders_queue.pop
                    
-                    # eventually terminates processing it's finished
+                    # eventually terminates processing if it's finished
                     if message.end and @orders_queue.empty?
                         self.logger.debug { "All orders realised. Terminating." }
-                        
+# XXXXXX                        
                         self.io :write do |io|
                             io.puts MultiJson::dump({
                                 :type => :end
