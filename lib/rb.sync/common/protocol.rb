@@ -2,7 +2,7 @@
 # (c) 2012 Martin Kozák (martinkozak@martinkozak.net)
 
 require "thread"
-require "rb.sync/common/message"
+require "rb.sync/common/protocol/message"
 
 module RbSync
 
@@ -20,14 +20,22 @@ module RbSync
         @io
         
         ##
+        # Logging object.
+        # @var [Logger]
+        #
+        
+        @logger
+        
+        ##
         # Constructor.
         #
         # @param [RbSync::IO] io  communication object
         # @param [Logger] logger  logging object
         #
         
-        def initialize(io)
+        def initialize(io, logger)
             @io = io
+            @logger = logger
         end
                 
         ##
@@ -37,10 +45,11 @@ module RbSync
         # @param [String] to  indicate the target file
         #
         
-        def negotiate_transmission(from, to)
-            @io.acquire :write do |io| 
-                self.logger.info { "Negotiating." }
-                io.puts RbSync::Message::new({
+        def negotiate(from, to)
+            @io.acquire :write do |io|
+                @logger.info { "Negotiating." }
+                
+                io.puts RbSync::Protocol::Message::new({
                     :type => :file,
                     :size => File.size(from),
                     :path => to,
@@ -56,7 +65,7 @@ module RbSync
         def push_hash(hash)
             @io.acquire :write do |io|
                 @logger.debug { "Sending hash of block #{hash}." }
-                io.puts RbSync::Message::new({
+                io.puts RbSync::Protocol::Message::new({
                     :type => :hash,
                     :hash => hash
                 })
@@ -65,12 +74,11 @@ module RbSync
         
         ##
         # Indicates end.
-        # @param [String] hash
         #
         
-        def end
+        def end!
             @io.acquire :write do |io|
-                io.puts RbSync::Message::new({
+                io.puts RbSync::Protocol::Message::new({
                     :type => :end
                 })
             end
@@ -81,10 +89,12 @@ module RbSync
         # @yield [Object] block or message
         #
         
-        def wait_interaction
+        def wait_interaction!
+            data = nil
+            
             @io.acquire :read do |io|
                 @logger.debug { "Waiting for messages." }
-                data = io.read(2)
+                data = io.read(6)
             end
             
             if data.nil?
@@ -92,8 +102,8 @@ module RbSync
             else
                 version, type, compression = data.unpack('LCC')
                 case type
-                    when RbSync::Message::type
-                        return RbSync::Message::load(@io)
+                    when RbSync::Protocol::Message::type
+                        return RbSync::Protocol::Message::load(@io)
                     #when RbSync::Message::type
                         #RbSync::Message::load(@io_locks, @io)
                 end

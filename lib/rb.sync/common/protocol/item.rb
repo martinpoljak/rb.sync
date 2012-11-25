@@ -4,45 +4,49 @@
 require "thread"
 require "rb.sync/common/protocol"
 
-module RbSync::Protocol::Item
+module RbSync
+    class Protocol
+        module Item
 
-    ##
-    # Loads the item content.
-    #
-    # @param [RbSync::IO] io  input object
-    # @return [RbSync::Protocol::Item]
-    #
-    
-    def self.load(io)
-        self
-    end
+            ##
+            # Loads the item content.
+            #
+            # @param [RbSync::IO] io  input object
+            # @return [RbSync::Protocol::Item]
+            #
+            
+            def self.load(io)
+                self
+            end
 
-    ##
-    # Indicates item kind.
-    # @return [Integer] kind of the item
-    #
-    
-    def kind
-        self.class::kind
+            ##
+            # Indicates item kind.
+            # @return [Integer] kind of the item
+            #
+            
+            def kind
+                self.class::kind
+            end
+            
+            ##
+            # Serializes the item to string form.
+            # @return [String] a string representation
+            #
+            
+            def serialize
+                ''
+            end
+            
+            ##
+            # Converts to string, so prepends serialization header.
+            # @return [String] full item string representation
+            #
+            
+            def to_s
+                header = [1, self.kind, 0].pack("LCC")
+                self.serialize.prepend(header)
+            end
+
+        end
     end
-    
-    ##
-    # Serializes the item to string form.
-    # @return [String] a string representation
-    #
-    
-    def serialize
-        ''
-    end
-    
-    ##
-    # Converts to string, so prepends serialization header.
-    # @return [String] full item string representation
-    #
-    
-    def to_s
-        header = [1, self.kind, 0].pack("LCC")
-        self.serialize.prepend(header)
-    end
-    
 end
