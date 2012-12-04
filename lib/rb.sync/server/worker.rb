@@ -10,15 +10,35 @@ require "hash-utils"
 require "xz"
 require "logger"
 
+require "rb.sync/common/io"
+require "rb.sync/common/protocol/block"
+require "rb.sync/common/protocol/message"
+require "rb.sync/common/protocol"
+
 module RbSync
     module Server
         class Worker
 
+            ##
+            # Contains the remote IO object.
+            # @var [RbSync::IO]
+            #
+            
             @io
-            @io_locks
+            
+            ##
+            # Contains teh local IO object.
+            # @var [RbSync::IO]
+            #
             
             @file
-            @file_lock
+            
+            ##
+            # Contains the protocol wrapper.
+            # @var [RbSync::Protocol]
+            #
+            
+            @protocol
             
             @local_hashes
             @remote_hashes
@@ -35,11 +55,6 @@ module RbSync
                 @file_bytes = 0
                 @remote_hashes = Queue::new
                 @local_hashes = Queue::new
-                
-                @io_locks = {
-                    :read => Mutex::new,
-                    :write => Mutex::new
-                }
             end
             
             ##
@@ -76,9 +91,29 @@ module RbSync
                 self.logger.debug { "Starting data dispatcher." }
                 
                 loop do
+                    data = self.protocol.wait_interaction!
+                    
+                    # message (process it by message handler)
+                    if data.kind_of? RbSync::Protocol::Message
+                        result = self.handle_message(data)
+                        return if result == :end
+                        
+                    # block (process it by block handler)
+                    elsif data.kind_of? RbSync::Protocol::Block
+                        self.handle_block(data)
+                    
+                    # closed connection (terminate)
+                    else
+                        self.logger.info { "Connection closed? Termination." }
+                        self.terminate!
+                    end
+                end
+                
+=begin
+                loop do
                     prefix = nil
                     
-                    self.io :read do |io|
+                    self.io.acquire :read do |io|
                         self.logger.debug { "Waiting for data." }
                         prefix = io.read(5)
                         self.logger.debug { "Data arrived." }
@@ -92,9 +127,9 @@ module RbSync
                     # block detected
                     elsif prefix == "block"
                         meta = nil
-                        self.io :read do |io|
+                        self.io.acquire :read do |io|
                             self.logger.debug { "Reading block." }
-                            meta = @io.read(16)
+                            meta = io.read(16)
                         end
                         
                         self.handle_block(meta, @io)
@@ -102,7 +137,7 @@ module RbSync
                     # in otherwise, it's message
                     else
                         data = nil
-                        self.io :read do |io|
+                        self.io.acquire :read do |io|
                             self.logger.debug { "Reading message." }
                             data = io.gets
                         end
@@ -112,45 +147,55 @@ module RbSync
                         
                     end
                 end
+=end
+
             end
             
             ##
             # Handles received block.
+            # @param [RbSync::Protocol::Block] block
             #
             
-            def handle_block(meta, io)
+            def handle_block(block)
               
                 # analyses metadata
-                sequence, size = meta.unpack("QQ")
-                self.logger.debug { "Block #{sequence} with compressed size #{size} received." }
+                self.logger.debug { "Block #{block.local_number} with compressed size #{block.local_size} received." }
 
                 # reads data
-                data = nil
-                self.io :read do |io|
-                    self.logger.debug { "Reading the data of block #{sequence}." }
-                    data = io.read(size)
-                end
+                #data = nil
+                #self.logger.debug { "Reading the data of block #{sequence}." }
+                #self.io.acquire :read do |io|
+                #    self.logger.debug { "Reading the data of block #{sequence}." }
+                #    data = io.read(size)
+                #end
                 
                 #data = Zlib::Inflate::inflate(data)
-                self.logger.debug { "Decompressing block #{sequence}." }
+                #self.logger.debug { "Decompressing block #{sequence}." }
                 #data = XZ::decompress(data)
                 
-                self.file do |file|
-                    self.logger.debug { "Writing #{data.length} bytes of block #{sequence}." }
-                    file.seek(sequence * 1024 * 1024)
-                    file.write(data)
-                end
+                #self.file.acquire do |file|
+                #    self.logger.debug { "Writing #{data.length} bytes of block #{sequence}." }
+                #    file.seek(sequence * 1024 * 1024)
+                #    file.write(data)
+                #end
                 
-                @file_bytes += data.length
+                block.local_io = self.file
+                self.logger.debug { "Writing #{block.local_size} bytes of block #{block.local_number}." }
+                block.remote_to_local!
+                
+                @file_bytes += block.local_size
                 self.report!
             end
             
             ##
             # Handles message.
             #
+            # @param [RbSync::Protocol::Message] message
+            # @return [nil, Symbol] +nil+ or +:end+ if it's 
+            #   terminating message 
+            #
             
-            def handle_message(data)
-                message = Hashie::Mash::new(MultiJson::load(data))
+            def handle_message(message)
                 self.logger.debug { "Message of type '#{message.type}' received." }
 
                 # Calls processing method according to incoming data
@@ -171,14 +216,14 @@ module RbSync
             def terminate!
                 self.logger.info { "Terminating worker." }
                 
-                self.io :read do
-                    self.io :write do |io|
+                self.io.acquire :read
+                    self.io.acquire :write do |io|
                         self.logger.info { "Closing remote IO." }
                         io.close()
                     end
                 end
                 
-                self.file do |file|
+                self.file.acquire do |file|
                     self.logger.info { "Closing file." }
                     file.close()
                 end
@@ -189,6 +234,7 @@ module RbSync
             
             ##
             # Loads file.
+            # @param [RbSync::Protocol::Message] message
             #
             
             def load_file(message)
@@ -208,12 +254,12 @@ module RbSync
                         self.logger.debug { "Starting indexing." }
                         
                         while data
-                            self.file do |file|
+                            self.file.acquire do |file|
                                 file.seek(position)
 
                                 # creates local hash table
                                 self.logger.debug { "Reading block starting at #{position}." }
-                                data = file.read(1024 * 1024)
+                                data = file.read(@meta.blocksize)
                             end
                             
                             if data
@@ -221,7 +267,7 @@ module RbSync
                                 hash = Digest::SHA1.hexdigest(data)
                                 @local_hashes << hash
                                 self.logger.debug { "Adding local hash #{hash}." }
-                                position += 1024 * 1024
+                                position += @meta.blocksize
                             end
                         end
                         
@@ -237,6 +283,7 @@ module RbSync
             
             ##
             # Adds received hash to remote hashes collection.
+            # @param [RbSync::Protocol::Message] message
             #
             
             def add_hash(message)
@@ -277,17 +324,11 @@ module RbSync
                         end
 
                         if local.to_sym != :end and remote.to_sym != :end and local != remote
-                            self.io :write do |io|
-                                self.logger.debug { "Ordering block #{sequence}." }
-                                
-                                io.puts MultiJson::dump({
-                                    :type => :order,
-                                    :sequence => sequence
-                                })
-                            end
+                            self.logger.debug { "Ordering block #{sequence}." }
+                            self.protocol.order_block(sequence)
                         else
                             self.logger.debug { "Block #{sequence} is matching." }
-                            @file_bytes += 1024 * 1024
+                            @file_bytes += @meta.blocksize
                         end
                 
                         # tracks already processed sequences
@@ -298,7 +339,7 @@ module RbSync
                         # stops processing if everything was ordered
                         
                         if remote_end and local_end
-                            self.io :write do |io|
+                            self.io.acquire :write do |io|
                                 self.logger.debug { "Announcing, everything has been ordered." }
                                 
                                 io.puts MultiJson::dump({
@@ -339,29 +380,24 @@ module RbSync
                     
                     # opens the file
                     self.logger.debug { "Opening file." }
-                    @file = File.open(@meta.path, "r+")
+                    file = File.open(@meta.path, "r+")
+                    @file = RbSync::IO::new(file, :file, self.logger, [:lock])
                     
                 end
                 
-                @file_lock.synchronize do
-                    self.logger.debug { "Locking file." }
-                    yield @file
-                    self.logger.debug { "Unlocking file." }
-                end
+                yield @file
             end
             
             ##
             # Returns the client connection IO object.
-            #
-            # @param [:read, :write] method  method for correct locking
-            # @yield IO  the mutexed IO object
+            # @return [RbSync::IO]]  IO object
             #
             
-            def io(method)
-                @io_locks[method].synchronize do
-                    self.logger.debug { "Locking remote IO for #{method}." }
-                    yield @io
-                    self.logger.debug { "Unlocking remote IO for #{method}." }
+            def io
+                if @io.kind_of? ::IO
+                    @io = RbSync::IO::new(@io, :remote, self.logger, [:read, :write])
+                else
+                    @io
                 end
             end
                 
@@ -389,6 +425,19 @@ module RbSync
                 return @logger
             end
 
+            ##
+            # Returns the protocol object.
+            # @return [RbSync::Protocol]
+            #
+            
+            def protocol
+                if @protocol.nil?
+                    @protocol = RbSync::Protocol::new(self.io, self.logger)
+                else
+                    @protocol
+                end
+            end
+            
         end
     end
 end

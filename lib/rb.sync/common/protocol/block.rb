@@ -3,6 +3,7 @@
 
 require "multi_json"
 require "hashie/mash"
+require "hash-utils"
 require "rb.sync/common/protocol/item"
 
 module RbSync
@@ -34,6 +35,7 @@ module RbSync
             # @var [RbSync::IO]
             #
             
+            attr_writer :local_io
             @local_io
             
             ##
@@ -48,6 +50,7 @@ module RbSync
             # @var [Integer]
             #
             
+            attr_reader :local_size   
             @local_size
 
             ##
@@ -55,6 +58,7 @@ module RbSync
             # @var [Integer]
             #
             
+            attr_reader :local_number
             @local_number
             
             ##
@@ -97,15 +101,16 @@ module RbSync
             #
             
             def self.load(io)
-                local_size, local_number = nil
+                local_size, local_position, local_number = nil
                 io.acquire :read do |io|
-                    local_size, local_number = io.read(16).unpack('QQ')
+                    local_size, local_position, local_number = io.read(24).unpack('QQQ')
                 end
                 
                 self::new(
                     :remote_io => io,
                     :local_size => local_size,
-                    :local_number => local_number
+                    :local_number => local_number,
+                    :local_position => local_position
                 )
             end
 
@@ -127,7 +132,7 @@ module RbSync
             #
             
             def serialize
-                [@local_size, @local_number].pack('QQ')
+                [@local_size, @local_position, @local_number].pack('QQQ')
             end
             
             ##

@@ -185,7 +185,7 @@ module RbSync
         
         def negotiate!
             self.logger.info { "Negotiating." }
-            self.protocol.negotiate(@targets.from, @targets.to)
+            self.protocol.negotiate(@targets.from, @targets.to, @options)
         end
         
         ##
@@ -306,6 +306,7 @@ module RbSync
                     end
                 
                     # sends block
+                    self.logger.debug { "Sending block number #{message.sequence} of size #{@options.blocksize}." }
                     self.protocol.send_block(
                         :local_number => message.sequence,
                         :local_position => message.sequence * @options.blocksize,

@@ -44,9 +44,10 @@ module RbSync
         #
         # @param [String] from  indicate the source file
         # @param [String] to  indicate the target file
+        # @param [Hash] options  client settings
         #
         
-        def negotiate(from, to)
+        def negotiate(from, to, options)
             @io.acquire :write do |io|
                 @logger.info { "Negotiating." }
                 
@@ -54,6 +55,7 @@ module RbSync
                     :type => :file,
                     :size => File.size(from),
                     :path => to,
+                    :blocksize = @options.blocksize
                 })
             end
         end
@@ -107,6 +109,8 @@ module RbSync
                         return RbSync::Protocol::Message::load(@io)
                     when RbSync::Protocol::Block::type
                         return RbSync::Protocol::Block::load(@io)
+                    else
+                        return nil
                 end
             end
         end
@@ -123,15 +127,21 @@ module RbSync
         #
         
         def send_block(options)
-              block = RbSync::Protocol::Block::new(
-                  :local_number => message.sequence,
-                  :local_position => message.sequence * @options.blocksize,
-                  :local_size => @options.blocksize,
-                  :local => self.file,
-                  :remote => self.io
-              )
-              
-              block.local_to_remote!
+            RbSync::Protocol::Block::new(options).local_to_remote!
+        end
+        
+        ##
+        # Orders block of the given sequence.
+        # @param [Integer] number  the sequence number
+        #
+        
+        def order_block(number)
+            @io.acquire :write do |io|
+                io.puts MultiJson::dump({
+                    :type => :order,
+                    :sequence => number
+                })
+            end
         end
         
     
