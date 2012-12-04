@@ -11,6 +11,7 @@ require "rb.sync/server/worker"
 
 # Main server loop
 server = TCPServer.open(7835)
+
 loop do
     Thread.start(server.accept) do |client|
         begin

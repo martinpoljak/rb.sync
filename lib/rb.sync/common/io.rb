@@ -15,6 +15,7 @@ module RbSync
         # @var [IO]
         #
         
+        attr_reader :io
         @io
         
         ##
@@ -53,7 +54,7 @@ module RbSync
             @type = type
             @locks = locks
         end 
-        
+=begin        
         ##
         # Reads data from IO.
         # @param [Integer] length
@@ -82,9 +83,18 @@ module RbSync
         end
         
         ##
+        # Returns position from beginning of the stream.
+        # @return [Integer]
+        #
+        
+        def pos
+            @io.pos
+        end
+=end        
+        ##
         # Acquires given lock.
         # @param [Symbol] name  lock name
-        # @yield [RbSync::IO]
+        # @yield [IO]
         #
         
         def acquire(name = :all)

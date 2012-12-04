@@ -12,7 +12,7 @@ module RbSync
         # Single message, so protocol metastructure.
         #
 
-        class Message < Hashie::Mash
+        class Data < Hashie::Mash
             include RbSync::Protocol::Item
 
             ##
@@ -27,7 +27,7 @@ module RbSync
                 # Reads the data
                 data = nil
                 io.acquire :read do
-                    size = io.read(8).unpack('Q').first
+                    size = io.read(8)
                     data = io.read(size)
                 end
                 
@@ -44,6 +44,15 @@ module RbSync
             
             def self.kind
                 1
+            end
+
+            ##
+            # Indicates item kind.
+            # @return [Integer] kind of the item
+            #
+            
+            def kind
+                self.class::kind
             end
             
             ##

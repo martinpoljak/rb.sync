@@ -12,6 +12,7 @@ require "trollop"
 
 require "rb.sync/common/protocol"
 require "rb.sync/common/io"
+require "rb.sync/common/protocol/block"
 
 module RbSync
     class Client
@@ -304,7 +305,16 @@ module RbSync
                         return
                     end
                 
-                    # loads block
+                    # sends block
+                    self.protocol.send_block(
+                        :local_number => message.sequence,
+                        :local_position => message.sequence * @options.blocksize,
+                        :local_size => @options.blocksize,
+                        :local => self.file,
+                        :remote => self.io
+                    )
+                    
+=begin                    
                     data = nil
                     position = message.sequence * @options.blocksize
                     
@@ -332,7 +342,7 @@ module RbSync
                         @file_bytes += data.length
                         puts "#{@file_bytes / (@options.blocksize)}M"
                     end
-                    
+=end                    
                 end
             end
             

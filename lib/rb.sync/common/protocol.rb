@@ -3,6 +3,7 @@
 
 require "thread"
 require "rb.sync/common/protocol/message"
+require "rb.sync/common/protocol/block"
 
 module RbSync
 
@@ -104,11 +105,35 @@ module RbSync
                 case type
                     when RbSync::Protocol::Message::type
                         return RbSync::Protocol::Message::load(@io)
-                    #when RbSync::Message::type
-                        #RbSync::Message::load(@io_locks, @io)
+                    when RbSync::Protocol::Block::type
+                        return RbSync::Protocol::Block::load(@io)
                 end
             end
         end
+        
+        ##
+        # Sends block data.
+        #
+        # @param [Hash] options
+        # @option options [RbSync::IO] :remote  remote IO object
+        # @option options [RbSync::IO] :local  local IO object
+        # @option options [Integer] :local_size  size of the block in local IO
+        # @option options [Integer] :local_position  position of the block in local IO
+        # @option options [Integer] :local_number  block number in local IO
+        #
+        
+        def send_block(options)
+              block = RbSync::Protocol::Block::new(
+                  :local_number => message.sequence,
+                  :local_position => message.sequence * @options.blocksize,
+                  :local_size => @options.blocksize,
+                  :local => self.file,
+                  :remote => self.io
+              )
+              
+              block.local_to_remote!
+        end
+        
     
     end
     

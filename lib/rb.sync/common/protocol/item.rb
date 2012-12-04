@@ -43,7 +43,7 @@ module RbSync
             #
             
             def to_s
-                header = [1, self.kind, 0].pack("LCC")
+                header = [1, self.kind, 0].pack("LCC")  # protocol version, type, compression type
                 self.serialize.prepend(header)
             end
 

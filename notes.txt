@@ -14,6 +14,7 @@ melo by byt nastavitelne
 - melo by byt zapnutelne vypisovani mnozstvi dat v lidskych jednotkach (-h)
 - mela by existovat moznost vybrat hashovaci algoritmus
 - a zapnout silent mode
+- nejen typ, ale i delka hashe
 
 a jinak
 - podpora vnitrniho bufferovani (StringIO)
