@@ -4,6 +4,7 @@ GEM
     datasizes (1.0.0)
       hash-utils (>= 2.0.0)
     ffi (1.1.5)
+    ffi (1.1.5-java)
     hash-utils (2.1.0)
       ruby-version (>= 0.4.0)
     hashie (1.2.0)
@@ -16,6 +17,7 @@ GEM
     trollop (2.0)
 
 PLATFORMS
+  java
   ruby
 
 DEPENDENCIES

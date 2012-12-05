@@ -92,7 +92,7 @@ module RbSync
                 
                 loop do
                     data = self.protocol.wait_interaction!
-                    
+        #p data.inspect
                     # message (process it by message handler)
                     if data.kind_of? RbSync::Protocol::Message
                         result = self.handle_message(data)
@@ -180,7 +180,8 @@ module RbSync
                 #end
                 
                 block.local_io = self.file
-                self.logger.debug { "Writing #{block.local_size} bytes of block #{block.local_number}." }
+      #self.logger.debug { "x" * 1000 }
+                self.logger.debug { "Writing #{block.local_size} bytes of block #{block.local_number} to position #{block.local_position}." }
                 block.remote_to_local!
                 
                 @file_bytes += block.local_size
@@ -216,7 +217,7 @@ module RbSync
             def terminate!
                 self.logger.info { "Terminating worker." }
                 
-                self.io.acquire :read
+                self.io.acquire :read do
                     self.io.acquire :write do |io|
                         self.logger.info { "Closing remote IO." }
                         io.close()
@@ -275,7 +276,7 @@ module RbSync
                         @local_hashes << :end
                         
                     rescue Exception => e
-                        self.logger.fatal { "Exception: #{e.message}\n #{e.backtrace.join("\n")}" }
+                        self.logger.fatal { "#{e.class.name}: #{e.message}\n #{e.backtrace.join("\n")}" }
                     end
                 end
                 
@@ -302,55 +303,52 @@ module RbSync
             
             def dispatch_orders!
                 Thread::new do
-                    self.logger.debug { "Starting orders dispatcher." }
-                    
-                    sequence = 0
-                    remote_end = false
-                    local_end = false
-                    
-                    loop do
+                    begin
+                        self.logger.debug { "Starting orders dispatcher." }
                         
-                        # compares each received hashes pair and eventually 
-                        # orders it 
-                        remote = @remote_hashes.pop if not remote_end
-                        local = @local_hashes.pop if not local_end
+                        sequence = 0
+                        remote_end = false
+                        local_end = false
                         
-                        if remote.to_sym == :end 
-                            remote_end = true
-                        end
-                        
-                        if local.to_sym == :end 
-                            local_end = true
-                        end
-
-                        if local.to_sym != :end and remote.to_sym != :end and local != remote
-                            self.logger.debug { "Ordering block #{sequence}." }
-                            self.protocol.order_block(sequence)
-                        else
-                            self.logger.debug { "Block #{sequence} is matching." }
-                            @file_bytes += @meta.blocksize
-                        end
-                
-                        # tracks already processed sequences
-                        sequence += 1
-                        remote = nil
-                        local = nil
-                        
-                        # stops processing if everything was ordered
-                        
-                        if remote_end and local_end
-                            self.io.acquire :write do |io|
-                                self.logger.debug { "Announcing, everything has been ordered." }
-                                
-                                io.puts MultiJson::dump({
-                                    :type => :order,
-                                    :end => true
-                                })
+                        loop do
+                            
+                            # compares each received hashes pair and eventually 
+                            # orders it 
+                            remote = @remote_hashes.pop if not remote_end
+                            local = @local_hashes.pop if not local_end
+                            
+                            if remote.to_sym == :end 
+                                remote_end = true
                             end
-                                              
-                            break
+                            
+                            if local.to_sym == :end 
+                                local_end = true
+                            end
+
+                            if local.to_sym != :end and remote.to_sym != :end and local != remote
+                                self.logger.debug { "Ordering block #{sequence}." }
+                                self.protocol.order_block(sequence)
+                            else
+                                self.logger.debug { "Block #{sequence} is matching." }
+                                @file_bytes += @meta.blocksize
+                            end
+                    
+                            # tracks already processed sequences
+                            sequence += 1
+                            remote = nil
+                            local = nil
+                            
+                            # stops processing if everything was ordered
+                            
+                            if remote_end and local_end
+                                self.protocol.end_ordering!
+                                break
+                            end
+                            
                         end
                         
+                    rescue Exception => e
+                        self.logger.fatal { "#{e.class.name}: #{e.message}\n #{e.backtrace.join("\n")}" }
                     end
                 end
             end
@@ -374,18 +372,18 @@ module RbSync
                     
                     # truncates the file according to source file
                     if File.size(@meta.path) > @meta[:size]
-                        self.logger.debug { "Truncating file to size #{meta[:size]}." }
+                        self.logger.debug { "Truncating file to size #{@meta[:size]}." }
                         File.truncate(@meta.path, @meta[:size])
                     end
                     
                     # opens the file
                     self.logger.debug { "Opening file." }
                     file = File.open(@meta.path, "r+")
-                    @file = RbSync::IO::new(file, :file, self.logger, [:lock])
+                    @file = RbSync::IO::new(file, :file, self.logger)
                     
                 end
                 
-                yield @file
+                return @file
             end
             
             ##

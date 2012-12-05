@@ -2,7 +2,6 @@
 # (c) 2012 Martin Kozák (martinkozak@martinkozak.net)
 
 require "thread"
-require "rb.sync/common/protocol"
 
 module RbSync
     class Protocol

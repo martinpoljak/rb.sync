@@ -45,19 +45,24 @@ module RbSync
         # @param [String] from  indicate the source file
         # @param [String] to  indicate the target file
         # @param [Hash] options  client settings
+        # @return [RbSync::Protocol::Message]
         #
         
         def negotiate(from, to, options)
+            message = nil
+            
             @io.acquire :write do |io|
-                @logger.info { "Negotiating." }
-                
-                io.puts RbSync::Protocol::Message::new({
+                message = RbSync::Protocol::Message::new({
                     :type => :file,
                     :size => File.size(from),
                     :path => to,
-                    :blocksize = @options.blocksize
+                    :blocksize => options.blocksize
                 })
+                
+                io.write(message)
             end
+            
+            return message
         end
         
         ##
@@ -68,7 +73,7 @@ module RbSync
         def push_hash(hash)
             @io.acquire :write do |io|
                 @logger.debug { "Sending hash of block #{hash}." }
-                io.puts RbSync::Protocol::Message::new({
+                io.write RbSync::Protocol::Message::new({
                     :type => :hash,
                     :hash => hash
                 })
@@ -81,7 +86,8 @@ module RbSync
         
         def end!
             @io.acquire :write do |io|
-                io.puts RbSync::Protocol::Message::new({
+                @logger.debug { "Indicates termination." }
+                io.write RbSync::Protocol::Message::new({
                     :type => :end
                 })
             end
@@ -99,17 +105,20 @@ module RbSync
                 @logger.debug { "Waiting for messages." }
                 data = io.read(6)
             end
-            
+  #p data
             if data.nil?
                 return nil
             else
+                #p "xxxx" + data
                 version, type, compression = data.unpack('LCC')
+                #p "xxxx" + [version, type, compression].to_s + RbSync::Protocol::Message::kind.to_s
                 case type
-                    when RbSync::Protocol::Message::type
+                    when RbSync::Protocol::Message::kind
                         return RbSync::Protocol::Message::load(@io)
-                    when RbSync::Protocol::Block::type
+                    when RbSync::Protocol::Block::kind
                         return RbSync::Protocol::Block::load(@io)
                     else
+                        @logger.debug { "Really strange data item of type #{type}." }
                         return nil
                 end
             end
@@ -137,9 +146,24 @@ module RbSync
         
         def order_block(number)
             @io.acquire :write do |io|
-                io.puts MultiJson::dump({
+                io.write RbSync::Protocol::Message::new({
                     :type => :order,
                     :sequence => number
+                })
+            end
+        end
+        
+        ##
+        # Indicates end of ordering.
+        #
+        
+        def end_ordering!
+            @io.acquire :write do |io|
+                @logger.debug { "Announcing, everything has been ordered." }
+                
+                io.write RbSync::Protocol::Message::new({
+                    :type => :order,
+                    :end => true
                 })
             end
         end

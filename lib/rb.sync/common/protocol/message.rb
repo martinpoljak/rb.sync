@@ -13,7 +13,7 @@ module RbSync
         #
 
         class Message < Hashie::Mash
-            include RbSync::Protocol::Item
+            include ::RbSync::Protocol::Item
 
             ##
             # Loads the message content.
@@ -26,9 +26,9 @@ module RbSync
             
                 # Reads the data
                 data = nil
-                io.acquire :read do
-                    size = io.read(8).unpack('Q').first
-                    data = io.read(size)
+                io.acquire :read do |_io|
+                    size = _io.read(8).unpack('Q').first
+                    data = _io.read(size)
                 end
                 
                 # Analyzes the data

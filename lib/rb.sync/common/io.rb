@@ -110,6 +110,7 @@ module RbSync
             end
               
             if name.in? @locks
+                @logger.debug { "Waiting for #{@type} IO lock for #{name}." }
                 @locks[name].synchronize do
                     @logger.debug { "Locking #{@type} IO for #{name}." }
                     yield @io

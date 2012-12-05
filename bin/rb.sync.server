@@ -18,7 +18,7 @@ loop do
             handler = RbSync::Server::Worker::new(client)
             handler.handle!
         rescue Exception => e
-            Logger::new(STDOUT).fatal { e.message }
+            Logger::new(STDOUT).fatal { "#{e.class.name}: #{e.message}\n #{e.backtrace.join("\n")}" }
             handler.close!
         end
     end
