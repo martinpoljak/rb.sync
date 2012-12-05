@@ -75,9 +75,6 @@ module RbSync
                 
                 self.logger.info { "Starting worker." }
                 
-                # Starts dispatching orders
-                self.dispatch_orders!
-                
                 # Handles input data
                 self.handle_data!
                 
@@ -108,46 +105,6 @@ module RbSync
                         self.terminate!
                     end
                 end
-                
-=begin
-                loop do
-                    prefix = nil
-                    
-                    self.io.acquire :read do |io|
-                        self.logger.debug { "Waiting for data." }
-                        prefix = io.read(5)
-                        self.logger.debug { "Data arrived." }
-                    end
-
-                    # nil received, it's reason for termination
-                    if prefix.nil?
-                        self.logger.info { "Connection closed? Termination." }
-                        self.terminate!
-                        
-                    # block detected
-                    elsif prefix == "block"
-                        meta = nil
-                        self.io.acquire :read do |io|
-                            self.logger.debug { "Reading block." }
-                            meta = io.read(16)
-                        end
-                        
-                        self.handle_block(meta, @io)
-                        
-                    # in otherwise, it's message
-                    else
-                        data = nil
-                        self.io.acquire :read do |io|
-                            self.logger.debug { "Reading message." }
-                            data = io.gets
-                        end
-                        
-                        result = self.handle_message(prefix + data)
-                        return if result == :end
-                        
-                    end
-                end
-=end
 
             end
             
@@ -244,17 +201,26 @@ module RbSync
                 @meta = message
                 
                 # Informs
-                self.logger.info { "Starting processing of file with size #{@meta.size}." }
+                self.logger.info { "Starting processing of file with size #{@meta[:size]}." }
+                
+                # Starts dispatching orders
+                self.dispatch_orders!
                 
                 # Generates hashes
                 Thread::new do
                     begin     
-                        position = 0
+                        position = @meta.offset * @meta.blocksize
                         data = true
+                        
+                        if @meta.blockcount
+                            target = position + @meta.blockcount * @meta.blocksize
+                        else
+                            target = nil
+                        end
                         
                         self.logger.debug { "Starting indexing." }
                         
-                        while data
+                        while data and (target.nil? or position < target)
                             self.file.acquire do |file|
                                 file.seek(position)
 
@@ -273,6 +239,8 @@ module RbSync
                         end
                         
                         # indicates end of stream
+                        self.logger.debug { "Adding local hash #{:end}." }
+                        self.logger.debug { "Indexing finished." }
                         @local_hashes << :end
                         
                     rescue Exception => e
@@ -306,7 +274,7 @@ module RbSync
                     begin
                         self.logger.debug { "Starting orders dispatcher." }
                         
-                        sequence = 0
+                        sequence = @meta.offset
                         remote_end = false
                         local_end = false
                         
@@ -323,27 +291,31 @@ module RbSync
                             
                             if local.to_sym == :end 
                                 local_end = true
+                                local = nil
                             end
-
-                            if local.to_sym != :end and remote.to_sym != :end and local != remote
+                            
+                            # remote has data, but local not or aren't matching
+                            if not remote_end and (local_end or (local != remote))
                                 self.logger.debug { "Ordering block #{sequence}." }
                                 self.protocol.order_block(sequence)
-                            else
+                            # both remote and local has data but are matching
+                            elsif not remote_end
                                 self.logger.debug { "Block #{sequence} is matching." }
                                 @file_bytes += @meta.blocksize
+                            # remote hasn't data, which means also local end
+                            else
+                                self.logger.debug { "No more data in remote means ordering is finished." }
+                                local_end = true
                             end
-                    
-                            # tracks already processed sequences
-                            sequence += 1
-                            remote = nil
-                            local = nil
                             
-                            # stops processing if everything was ordered
-                            
+                            # stops processing if everything was ordered                            
                             if remote_end and local_end
                                 self.protocol.end_ordering!
                                 break
                             end
+                    
+                            # tracks already processed sequences
+                            sequence += 1
                             
                         end
                         

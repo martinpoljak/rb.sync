@@ -204,11 +204,17 @@ module RbSync
                     self.logger.debug { "Starting hashset dispatcher." }
                     
                     data = true
-                    position = 0
+                    position = @options.offset * @options.blocksize
+                    
+                    if @options.blockcount
+                        target = position + @options.blockcount * @options.blocksize
+                    else
+                        target = nil
+                    end
                     
                     self.logger.info { "Starting indexing for transfer." }
                     
-                    while data
+                    while data and (target.nil? or position < target)
                         self.file.acquire do |file|
                             self.logger.debug { "Reading block from position #{position}." }
                             file.seek(position)
@@ -216,10 +222,7 @@ module RbSync
                         end
                         
                         position += @options.blocksize
-                        
-                        if data
-                            @hash_queue << Digest::SHA1.hexdigest(data)
-                        end
+                        @hash_queue << Digest::SHA1.hexdigest(data) if data
                     end
                     
                     # indicates finish
@@ -338,36 +341,7 @@ module RbSync
                                 :local_io => self.file,
                                 :remote_io => self.io
                             )
-                        end
-=begin                    
-                        data = nil
-                        position = message.sequence * @options.blocksize
-                        
-                        self.file.acquire do |file|
-                            self.logger.debug { "Reading block number #{message.sequence} from #{position}." }
-                            file.seek(position)
-                            data = file.read(@options.blocksize)
-                        end
-                        
-                        # if something has been loaded, sends it
-                        if not data.nil?
-                            self.logger.debug { "Compressing block number #{message.sequence}." }
-                            #compressed = XZ::compress(data)
-                            #compressed = Zlib::Deflate::deflate(data, Zlib::BEST_COMPRESSION)
-                            compressed = data
-                            self.logger.debug { "Block compressed to size #{compressed.length} (#{((compressed.length / data.length.to_f) * 100).to_i}%)." }
-                            
-                            self.io :write do |io|
-                                self.logger.debug { "Sending block number #{message.sequence}." }
-                                io.write "block" 
-                                io.write [message.sequence, compressed.length].pack("QQ")
-                                io.write compressed
-                            end
-                            
-                            @file_bytes += data.length
-                            puts "#{@file_bytes / (@options.blocksize)}M"
-                        end
-=end                    
+                        end                    
                     end
                     
                 rescue Exception => e

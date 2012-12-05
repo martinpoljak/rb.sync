@@ -1,10 +1,9 @@
 melo by byt nastavitelne
-- velikost bloku
+OK velikost bloku
 - typ comprese
 - zapnuti/vypnuti komprese 
 - soubory odkud
 - soubory do jake slozky
-- odesilani by melo probihat synchronne s hashovanim
 - moznost nastavit kolik bloku jen prenest
 - moznost nastavit offset prenosu souboru (v blocich)
 - po transferu by se mel overit soucet
@@ -15,13 +14,16 @@ melo by byt nastavitelne
 - mela by existovat moznost vybrat hashovaci algoritmus
 - a zapnout silent mode
 - nejen typ, ale i delka hashe
+- block-offset a block-count (bloky) vs. offset a limit (data)
 
 a jinak
+OK odesilani by melo probihat synchronne s hashovanim
 - podpora vnitrniho bufferovani (StringIO)
 - hashovani i komprese by mela probihat asynchronne v threadech podle poctu CPU
-- kazdy datovy prenos bude mit dvoubajtovy prefix: ID protokolu a ID typu komprese
+OK kazdy datovy prenos bude mit dvoubajtovy prefix: ID protokolu a ID typu komprese
 - korektni logovani v info rezimu
 - nacitanou delku dat by asi mela resit nejaka knihovna
+- blockoffset -> block-offset atd.
 
 velikost bloku i kompresi si klient se serverem vyjedna
 

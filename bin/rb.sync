@@ -20,6 +20,8 @@ Usage:
     rb.sync [options] <source>+ <target>\n 
     EOS
     opt :blocksize, "Size of the base hashing block [bytes or K, M, G]", { :type => :string, :default => "1M" }
+    opt :blockcount, "Number of blocks to transfer (applicable to single file transfers only)", { :type => :integer, :short => :c }
+    opt :offset, "Block number from which start transfering the file content (applicable to single file transfers only)", { :type => :integer, :default => 0 }
     opt :compression, "Transfer compression type [xz, deflate, bzip]", { :type => :string, :default => "xz" }
     opt :"compression-level", "Transfer compression level [0 to 9]", { :type => :integer, :default => 6, :short => :l }
 end

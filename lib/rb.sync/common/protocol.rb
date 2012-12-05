@@ -56,7 +56,9 @@ module RbSync
                     :type => :file,
                     :size => File.size(from),
                     :path => to,
-                    :blocksize => options.blocksize
+                    :blocksize => options.blocksize,
+                    :blockcount => options.blockcount,
+                    :offset => options.offset
                 })
                 
                 io.write(message)
