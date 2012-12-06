@@ -136,8 +136,15 @@ module RbSync
                 #    file.write(data)
                 #end
                 
+          #self.logger.debug { "x" * 1000 }
+          
+                # if cutting, positions for writing are relative to offset
+                if @meta.cut
+                    block.local_position -= @meta.offset * @meta.blocksize
+                end
+                
+                # writes
                 block.local_io = self.file
-      #self.logger.debug { "x" * 1000 }
                 self.logger.debug { "Writing #{block.local_size} bytes of block #{block.local_number} to position #{block.local_position}." }
                 block.remote_to_local!
                 
@@ -208,15 +215,22 @@ module RbSync
                 
                 # Generates hashes
                 Thread::new do
-                    begin     
-                        position = @meta.offset * @meta.blocksize
+                    begin  
                         data = true
+                                                
+                        if @meta.cut
+                            position = 0
+                        else
+                            position = @meta.offset * @meta.blocksize
+                        end
                         
                         if @meta.blockcount
                             target = position + @meta.blockcount * @meta.blocksize
                         else
                             target = nil
                         end
+                        
+                        ###
                         
                         self.logger.debug { "Starting indexing." }
                         

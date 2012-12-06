@@ -36,7 +36,7 @@ module RbSync
             # @var [Integer]
             #
 
-            attr_reader :local_position               
+            attr_accessor :local_position               
             @local_position
             
             ##
@@ -132,14 +132,11 @@ module RbSync
                 if not @remote_io or not @local_io
                     raise Exception::new("Copy request from remote to local stream, but no local and/or remote stream have been assigned.")
                 end
-                
-                #@remote_io.acquire :read do |rio|
-                    @local_io.acquire do |lio|
-                        lio.seek(@local_position)
-                        lio.write(@content)
-                        #File.copy_stream(rio, lio, @local_size)
-                    end
-                #end
+            
+                @local_io.acquire do |lio|
+                    lio.seek(@local_position)
+                    lio.write(@content)
+                end
             end
 
             ##

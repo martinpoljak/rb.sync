@@ -58,7 +58,8 @@ module RbSync
                     :path => to,
                     :blocksize => options.blocksize,
                     :blockcount => options.blockcount,
-                    :offset => options.offset
+                    :offset => options.offset,
+                    :cut => options.cut,
                 })
                 
                 io.write(message)

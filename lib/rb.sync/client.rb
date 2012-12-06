@@ -130,7 +130,8 @@ module RbSync
         def io
             if @io.nil?
                 self.logger.info("Connecting.")
-                io = TCPSocket.new 'localhost', 7835 #110
+                io = TCPSocket.new 'localhost', 7835
+                #io = TCPSocket.new 'vps.martinkozak.net', 110
                 @io = RbSync::IO::new(io, :remote, self.logger, [:read, :write])
             else
                 @io

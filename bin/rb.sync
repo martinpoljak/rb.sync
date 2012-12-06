@@ -24,6 +24,7 @@ Usage:
     opt :offset, "Block number from which start transfering the file content (applicable to single file transfers only)", { :type => :integer, :default => 0 }
     opt :compression, "Transfer compression type [xz, deflate, bzip]", { :type => :string, :default => "xz" }
     opt :"compression-level", "Transfer compression level [0 to 9]", { :type => :integer, :default => 6, :short => :l }
+    opt :cut, "Will not place required file section to real position in remote file (applicable to single file transfers only)", { :default => false, :short => :t }
 end
 
 options[:blocksize] = Datasizes::to_bytes(options[:blocksize])

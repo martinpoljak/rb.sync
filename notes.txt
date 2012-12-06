@@ -15,6 +15,7 @@ OK velikost bloku
 - a zapnout silent mode
 - nejen typ, ale i delka hashe
 - block-offset a block-count (bloky) vs. offset a limit (data)
+- mód výpisu sekvenční dle ladící úrovně (-verbose 0 až ...) nebo interaktivní (--friendly)
 
 a jinak
 OK odesilani by melo probihat synchronne s hashovanim
@@ -24,6 +25,7 @@ OK kazdy datovy prenos bude mit dvoubajtovy prefix: ID protokolu a ID typu kompr
 - korektni logovani v info rezimu
 - nacitanou delku dat by asi mela resit nejaka knihovna
 - blockoffset -> block-offset atd.
+- měl by přenášet data souborů
 
 velikost bloku i kompresi si klient se serverem vyjedna
 
