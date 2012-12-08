@@ -26,6 +26,11 @@ OK kazdy datovy prenos bude mit dvoubajtovy prefix: ID protokolu a ID typu kompr
 - nacitanou delku dat by asi mela resit nejaka knihovna
 - blockoffset -> block-offset atd.
 - měl by přenášet data souborů
+- server by měl signalizovat klientovy, že už nemá žádná data a může skončit 
+  hashování a zbytek objednat jako jeden celek
+- zpráva typu 'hash' by atokonto měla obsahovat buď počet hashů nebo počet 
+  objednávaných položek -- hashe pro porovnání, položky pro fixní vynucení;
+  tak bude možné i vynutit přenos -- argument --force
 
 velikost bloku i kompresi si klient se serverem vyjedna
 
